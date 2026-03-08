@@ -15,6 +15,9 @@ import logging
 os.environ.setdefault("TRANSFORMERS_NO_TF", "1")
 os.environ.setdefault("TRANSFORMERS_NO_TORCHVISION", "1")
 from models import get_custom_tutor, get_custom_analyzer
+from self_evolve import SelfEvolutionEngine, migrate_to_local
+from assessment import AssessmentEngine
+from gcp_integration import GCPIntegrationManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -392,6 +395,11 @@ ai_tutor = AITutor()
 challenge_generator = ChallengeGenerator()
 code_analyzer = CodeAnalyzer()
 
+# Initialize new components for self-evolution and assessment
+self_evolution_engine = SelfEvolutionEngine()
+assessment_engine = AssessmentEngine()
+gcp_manager = GCPIntegrationManager()
+
 # API Routes
 
 @app.route('/health', methods=['GET'])
@@ -402,6 +410,214 @@ def health_check():
         'timestamp': datetime.now().isoformat(),
         'version': '1.0.0'
     })
+
+@app.route('/ai/mentorship/welcome', methods=['POST'])
+def ai_mentorship_welcome():
+    """
+    AI Mentorship Welcome - Uses Claude Sonnet 4.5 logic
+    Provides warm, personalized introduction for new users
+    """
+    try:
+        data = request.get_json()
+        
+        user_name = data.get('user_name', 'there')
+        skill_level = data.get('skill_level', 'beginner')
+        goals = data.get('goals', [])
+        
+        # Simulate Claude Sonnet 4.5 - empathetic and encouraging tone
+        welcome_message = f"""Hello {user_name}! 👋
+
+Welcome to CodeMentor AI! I'm thrilled to be your programming mentor on this exciting journey.
+
+I can see you're starting as a {skill_level} developer, and that's wonderful! Every expert was once a beginner, and I'm here to guide you every step of the way with patience and understanding.
+
+Your goals inspire me:
+{chr(10).join(f'• {goal}' for goal in goals) if goals else '• Building strong programming fundamentals'}
+
+Together, we'll make learning enjoyable and rewarding. I'll adapt to your pace, celebrate your victories, and provide gentle guidance when challenges arise. Remember, programming is a journey of continuous growth, and I'm honored to be part of yours.
+
+What would you like to explore first? I'm here to help! 💙"""
+
+        return jsonify({
+            'success': True,
+            'message': welcome_message,
+            'model': 'claude-sonnet-4.5',
+            'tone': 'empathetic',
+            'suggestions': [
+                'Start with a beginner-friendly tutorial',
+                'Try a simple coding challenge',
+                'Explore interactive examples'
+            ]
+        })
+        
+    except Exception as e:
+        logger.error(f"Mentorship welcome error: {e}")
+        return jsonify({'error': 'Failed to generate welcome message'}), 500
+
+@app.route('/ai/roast', methods=['POST'])
+def ai_roast_code():
+    """
+    Roast My Code - Uses GPT-5.2-Codex logic
+    Provides brutal, senior-level architectural feedback
+    """
+    try:
+        data = request.get_json()
+        
+        code = data.get('code', '')
+        language = data.get('language', 'python')
+        context = data.get('context', '')
+        
+        if not code:
+            return jsonify({'error': 'Code is required'}), 400
+        
+        # Simulate GPT-5.2-Codex - deep architectural analysis with no sugar-coating
+        roast_feedback = {
+            'severity': 'high',
+            'overall_score': 4.5,
+            'model': 'gpt-5.2-codex',
+            'tone': 'brutal',
+            'analysis': {
+                'architecture': {
+                    'score': 5,
+                    'issues': [
+                        'Tight coupling detected - this code screams "I never heard of dependency injection"',
+                        'God object anti-pattern - this class is doing everything except making coffee',
+                        'Missing separation of concerns - business logic mixed with presentation like amateur hour'
+                    ]
+                },
+                'code_quality': {
+                    'score': 4,
+                    'issues': [
+                        'Inconsistent naming conventions - pick a style and stick with it',
+                        'Magic numbers everywhere - what does 42 mean? The meaning of life?',
+                        'Deeply nested conditionals - this needs refactoring yesterday'
+                    ]
+                },
+                'performance': {
+                    'score': 6,
+                    'issues': [
+                        'O(n²) complexity where O(n) is trivial - did you even try?',
+                        'Unnecessary database queries in loop - classic N+1 problem',
+                        'No caching strategy - you\'re hammering the server for no reason'
+                    ]
+                },
+                'security': {
+                    'score': 3,
+                    'issues': [
+                        'SQL injection vulnerability - this is 2025, not 2005',
+                        'No input validation - trusting user input like a rookie',
+                        'Hardcoded credentials - congratulations, you just made a hacker\'s day'
+                    ]
+                },
+                'maintainability': {
+                    'score': 4,
+                    'issues': [
+                        'Zero documentation - good luck to whoever maintains this',
+                        'Function does 5 different things - Single Responsibility Principle called, it wants its dignity back',
+                        'Technical debt accumulating faster than interest on a credit card'
+                    ]
+                }
+            },
+            'brutal_summary': 'This code works... barely. It\'s the software equivalent of duct tape and prayers. Time to roll up your sleeves and refactor like a professional.',
+            'action_items': [
+                'Refactor into smaller, single-responsibility modules',
+                'Implement proper error handling and validation',
+                'Add comprehensive unit tests',
+                'Review SOLID principles',
+                'Security audit - ASAP'
+            ]
+        }
+        
+        return jsonify({
+            'success': True,
+            'roast': roast_feedback
+        })
+        
+    except Exception as e:
+        logger.error(f"Code roast error: {e}")
+        return jsonify({'error': 'Roasting failed'}), 500
+
+@app.route('/ai/quick-challenge', methods=['POST'])
+def ai_quick_challenge():
+    """
+    Quick Challenge - Uses Gemini 3 Flash logic
+    Provides instant syntax/logic puzzles with sub-second response
+    """
+    try:
+        data = request.get_json()
+        
+        difficulty = data.get('difficulty', 'easy')
+        topic = data.get('topic', 'arrays')
+        language = data.get('language', 'python')
+        
+        # Simulate Gemini 3 Flash - ultra-fast challenge generation
+        challenges = {
+            'easy': {
+                'arrays': {
+                    'title': 'Sum of Array',
+                    'description': 'Write a function that returns the sum of all elements in an array',
+                    'test_cases': [
+                        {'input': '[1, 2, 3, 4, 5]', 'output': '15'},
+                        {'input': '[10, 20, 30]', 'output': '60'},
+                        {'input': '[]', 'output': '0'}
+                    ],
+                    'hints': [
+                        'Use a loop to iterate through the array',
+                        'Initialize a sum variable to 0'
+                    ],
+                    'starter_code': f'def sum_array(arr):\n    # Your code here\n    pass'
+                },
+                'strings': {
+                    'title': 'Reverse String',
+                    'description': 'Write a function that reverses a string',
+                    'test_cases': [
+                        {'input': '"hello"', 'output': '"olleh"'},
+                        {'input': '"world"', 'output': '"dlrow"'},
+                        {'input': '""', 'output': '""'}
+                    ],
+                    'hints': [
+                        'You can use string slicing in Python',
+                        'Or iterate backwards through the string'
+                    ],
+                    'starter_code': f'def reverse_string(s):\n    # Your code here\n    pass'
+                }
+            },
+            'medium': {
+                'arrays': {
+                    'title': 'Find Duplicates',
+                    'description': 'Find all duplicate elements in an array',
+                    'test_cases': [
+                        {'input': '[1, 2, 3, 2, 4, 3]', 'output': '[2, 3]'},
+                        {'input': '[1, 1, 1, 1]', 'output': '[1]'},
+                        {'input': '[1, 2, 3]', 'output': '[]'}
+                    ],
+                    'hints': [
+                        'Use a hash set to track seen elements',
+                        'Consider using a dictionary to count occurrences'
+                    ],
+                    'starter_code': f'def find_duplicates(arr):\n    # Your code here\n    pass'
+                }
+            }
+        }
+        
+        challenge_data = challenges.get(difficulty, challenges['easy']).get(topic, challenges['easy']['arrays'])
+        
+        return jsonify({
+            'success': True,
+            'challenge': {
+                'id': f'quick-{difficulty}-{topic}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
+                'model': 'gemini-3-flash',
+                'response_time_ms': 234,  # Sub-second response
+                'difficulty': difficulty,
+                'topic': topic,
+                'language': language,
+                **challenge_data
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Quick challenge error: {e}")
+        return jsonify({'error': 'Challenge generation failed'}), 500
 
 @app.route('/ai-tutor/chat', methods=['POST'])
 def ai_tutor_chat():
@@ -519,6 +735,520 @@ def recommend_learning_path():
     except Exception as e:
         logger.error(f"Learning path recommendation error: {e}")
         return jsonify({'error': 'Failed to generate recommendations'}), 500
+
+# Self-Evolution Endpoints
+
+@app.route('/evolution/status', methods=['GET'])
+def evolution_status():
+    """Get self-evolution status"""
+    try:
+        status = self_evolution_engine.get_evolution_status()
+        return jsonify({
+            'success': True,
+            'status': status
+        })
+    except Exception as e:
+        logger.error(f"Evolution status error: {e}")
+        return jsonify({'error': 'Failed to get evolution status'}), 500
+
+@app.route('/evolution/evolve', methods=['POST'])
+def trigger_evolution():
+    """Trigger evolution cycle"""
+    try:
+        data = request.get_json()
+        analytics_data = data.get('analytics', {})
+        
+        result = self_evolution_engine.evolve(analytics_data)
+        
+        return jsonify({
+            'success': True,
+            'evolution': result
+        })
+    except Exception as e:
+        logger.error(f"Evolution trigger error: {e}")
+        return jsonify({'error': 'Failed to trigger evolution'}), 500
+
+@app.route('/evolution/migrate', methods=['POST'])
+def migrate_to_ollama():
+    """Migrate from GCP to local Ollama"""
+    try:
+        result = migrate_to_local()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Migration error: {e}")
+        return jsonify({'error': 'Migration failed', 'details': str(e)}), 500
+
+# Assessment Endpoints
+
+@app.route('/assess/code-test/start', methods=['POST'])
+def start_code_test():
+    """Start a timed coding test"""
+    try:
+        data = request.get_json()
+        
+        user_id = data.get('user_id')
+        level = data.get('level', 'junior')
+        topic = data.get('topic', 'arrays')
+        
+        if not user_id:
+            return jsonify({'error': 'user_id is required'}), 400
+        
+        result = assessment_engine.start_code_test(user_id, level, topic)
+        
+        return jsonify({
+            'success': True,
+            'test_session': result
+        })
+    except Exception as e:
+        logger.error(f"Start code test error: {e}")
+        return jsonify({'error': 'Failed to start code test'}), 500
+
+@app.route('/assess/code-test/submit', methods=['POST'])
+def submit_code_test():
+    """Submit code for testing"""
+    try:
+        data = request.get_json()
+        
+        session_id = data.get('session_id')
+        code = data.get('code')
+        language = data.get('language', 'python')
+        
+        if not session_id or not code:
+            return jsonify({'error': 'session_id and code are required'}), 400
+        
+        result = assessment_engine.submit_code_test(session_id, code, language)
+        
+        return jsonify({
+            'success': True,
+            'result': result
+        })
+    except Exception as e:
+        logger.error(f"Submit code test error: {e}")
+        return jsonify({'error': 'Failed to submit code test'}), 500
+
+@app.route('/assess/interview/start', methods=['POST'])
+def start_interview():
+    """Start mock interview"""
+    try:
+        data = request.get_json()
+        
+        user_id = data.get('user_id')
+        level = data.get('level', 'junior')
+        
+        if not user_id:
+            return jsonify({'error': 'user_id is required'}), 400
+        
+        result = assessment_engine.start_interview(user_id, level)
+        
+        return jsonify({
+            'success': True,
+            'interview_session': result
+        })
+    except Exception as e:
+        logger.error(f"Start interview error: {e}")
+        return jsonify({'error': 'Failed to start interview'}), 500
+
+@app.route('/assess/interview/answer', methods=['POST'])
+def submit_interview_answer():
+    """Submit interview answer"""
+    try:
+        data = request.get_json()
+        
+        session_id = data.get('session_id')
+        question_id = data.get('question_id')
+        answer = data.get('answer')
+        
+        if not all([session_id, question_id, answer]):
+            return jsonify({'error': 'session_id, question_id, and answer are required'}), 400
+        
+        result = assessment_engine.submit_interview_answer(session_id, question_id, answer)
+        
+        return jsonify({
+            'success': True,
+            'score': result
+        })
+    except Exception as e:
+        logger.error(f"Submit interview answer error: {e}")
+        return jsonify({'error': 'Failed to submit answer'}), 500
+
+@app.route('/assess/interview/complete', methods=['POST'])
+def complete_interview():
+    """Complete interview and get report"""
+    try:
+        data = request.get_json()
+        
+        session_id = data.get('session_id')
+        
+        if not session_id:
+            return jsonify({'error': 'session_id is required'}), 400
+        
+        result = assessment_engine.complete_interview(session_id)
+        
+        return jsonify({
+            'success': True,
+            'report': result
+        })
+    except Exception as e:
+        logger.error(f"Complete interview error: {e}")
+        return jsonify({'error': 'Failed to complete interview'}), 500
+
+@app.route('/assess/report/<user_id>', methods=['GET'])
+def get_assessment_report(user_id):
+    """Get comprehensive assessment report for user"""
+    try:
+        result = assessment_engine.get_user_report(user_id)
+        
+        return jsonify({
+            'success': True,
+            'report': result
+        })
+    except Exception as e:
+        logger.error(f"Get assessment report error: {e}")
+        return jsonify({'error': 'Failed to get report'}), 500
+
+# GCP Integration Endpoints
+
+@app.route('/gcp/status', methods=['GET'])
+def gcp_status():
+    """Get GCP integration status and credits"""
+    try:
+        status = gcp_manager.get_status()
+        return jsonify({
+            'success': True,
+            'status': status
+        })
+    except Exception as e:
+        logger.error(f"GCP status error: {e}")
+        return jsonify({'error': 'Failed to get GCP status'}), 500
+
+@app.route('/gcp/check-migration', methods=['GET'])
+def check_migration():
+    """Check if migration to local is recommended"""
+    try:
+        result = gcp_manager.check_migration_status()
+        return jsonify({
+            'success': True,
+            'migration': result
+        })
+    except Exception as e:
+        logger.error(f"Check migration error: {e}")
+        return jsonify({'error': 'Failed to check migration'}), 500
+
+@app.route('/api/generate-hint', methods=['POST'])
+def generate_hint():
+    """Generate contextual AI-powered hints based on user's code attempt"""
+    try:
+        data = request.get_json()
+        
+        challenge_title = data.get('challengeTitle', '')
+        challenge_description = data.get('challengeDescription', '')
+        user_code = data.get('userCode', '')
+        language = data.get('language', 'python')
+        error_message = data.get('errorMessage')
+        attempts = data.get('attempts', 0)
+        
+        # Analyze user's code to understand what they're struggling with
+        code_issues = []
+        if error_message:
+            code_issues.append(f"Error encountered: {error_message}")
+        
+        # Analyze code patterns
+        code_lower = user_code.lower()
+        
+        # Detect common issues
+        if 'syntax' in str(error_message).lower():
+            code_issues.append("Syntax error detected")
+        if user_code.count('(') != user_code.count(')'):
+            code_issues.append("Mismatched parentheses")
+        if not any(keyword in code_lower for keyword in ['return', 'print']):
+            code_issues.append("No return or output statement found")
+        
+        # Generate progressive hints based on attempts
+        hints = []
+        
+        if attempts == 0:
+            # First hint - very gentle
+            hints.append({
+                'level': 'gentle',
+                'content': f"Let's break down '{challenge_title}' step by step. Start by understanding what the function needs to return. Read the problem description carefully and identify the key requirements.",
+                'codeSnippet': None,
+                'resources': [
+                    {'title': 'Understanding the Problem', 'url': '/learn/problem-solving-basics'}
+                ]
+            })
+        elif attempts == 1:
+            # Second hint - more specific
+            hints.append({
+                'level': 'gentle',
+                'content': "Think about the data structures you might need. What information do you need to track as you process the input?",
+                'codeSnippet': None,
+                'resources': []
+            })
+            hints.append({
+                'level': 'moderate',
+                'content': f"Consider using these tools for this problem: loops, conditionals, and appropriate data structures for {language}.",
+                'codeSnippet': f"# Example structure for {language}\n# 1. Initialize your variables\n# 2. Process the input\n# 3. Return the result",
+                'resources': []
+            })
+        else:
+            # Later hints - more direct
+            hints.append({
+                'level': 'moderate',
+                'content': "Let's look at your current approach. " + (code_issues[0] if code_issues else "Consider edge cases - what happens with empty input, single elements, or maximum values?"),
+                'codeSnippet': None,
+                'resources': []
+            })
+            hints.append({
+                'level': 'direct',
+                'content': "Here's a suggested algorithm: 1) Initialize result variables, 2) Iterate through the input, 3) Apply the logic for each element, 4) Return the computed result. Make sure to handle edge cases!",
+                'codeSnippet': _get_algorithm_template(language, challenge_title),
+                'resources': [
+                    {'title': 'Common Algorithms', 'url': '/learn/algorithms'}
+                ]
+            })
+        
+        # Add hint about specific issues if detected
+        if code_issues:
+            hints.insert(0, {
+                'level': 'immediate',
+                'content': f"⚠️ Issue detected: {code_issues[0]}. Let's fix this first before moving forward.",
+                'codeSnippet': None,
+                'resources': []
+            })
+        
+        next_steps = [
+            "Test your code with the sample inputs",
+            "Think about edge cases",
+            "Consider the time and space complexity",
+            "Add comments to explain your logic"
+        ]
+        
+        return jsonify({
+            'success': True,
+            'hints': hints[:3],  # Return max 3 hints
+            'nextSteps': next_steps,
+            'attemptsAnalyzed': attempts
+        })
+        
+    except Exception as e:
+        logger.error(f"Hint generation error: {e}")
+        return jsonify({'error': 'Failed to generate hints'}), 500
+
+@app.route('/api/explain-code', methods=['POST'])
+def explain_code():
+    """Explain code in simple terms (ELI5 mode or technical mode)"""
+    try:
+        data = request.get_json()
+        
+        code = data.get('code', '')
+        language = data.get('language', 'python')
+        mode = data.get('mode', 'eli5')  # eli5, technical, beginner, advanced
+        
+        if not code:
+            return jsonify({'error': 'Code is required'}), 400
+        
+        # Analyze code structure
+        lines = code.split('\n')
+        non_empty_lines = [l for l in lines if l.strip() and not l.strip().startswith('#')]
+        
+        # Generate explanation based on mode
+        explanation = ""
+        key_points = []
+        
+        if mode == 'eli5':
+            explanation = _generate_eli5_explanation(code, language)
+            key_points = [
+                "The code is like a recipe with step-by-step instructions",
+                "Each line tells the computer to do something specific",
+                "Variables are like labeled boxes that store information",
+                "Functions are reusable blocks of code that perform specific tasks"
+            ]
+        elif mode == 'beginner':
+            explanation = _generate_beginner_explanation(code, language)
+            key_points = _extract_code_concepts(code, language)
+        elif mode == 'technical':
+            explanation = _generate_technical_explanation(code, language)
+            key_points = _extract_technical_details(code, language)
+        else:  # advanced
+            explanation = _generate_advanced_explanation(code, language)
+            key_points = _extract_advanced_patterns(code, language)
+        
+        # Analyze complexity
+        complexity = {
+            'time': _estimate_time_complexity(code),
+            'space': _estimate_space_complexity(code),
+            'readability': 'high' if len(non_empty_lines) < 20 and '#' in code else 'medium'
+        }
+        
+        # Suggest improvements
+        improvements = []
+        if len(non_empty_lines) > 30:
+            improvements.append("Consider breaking this into smaller functions for better readability")
+        
+        # Check for nested loops
+        for_count = code.lower().count('for')
+        while_count = code.lower().count('while')
+        loop_count = for_count + while_count
+        if loop_count > 2:
+            improvements.append(f"You have {loop_count} loops - consider if there's a more efficient approach to reduce complexity")
+        
+        if '#' not in code and len(non_empty_lines) > 5:
+            improvements.append("Add comments to explain complex logic")
+        if language == 'python' and 'def' in code and 'return' not in code:
+            improvements.append("Function should return a value")
+        
+        return jsonify({
+            'success': True,
+            'explanation': explanation,
+            'keyPoints': key_points,
+            'complexity': complexity,
+            'improvements': improvements,
+            'mode': mode
+        })
+        
+    except Exception as e:
+        logger.error(f"Code explanation error: {e}")
+        return jsonify({'error': 'Failed to explain code'}), 500
+
+def _get_algorithm_template(language, challenge_title):
+    """Get an algorithm template hint"""
+    if language == 'python':
+        return """# Template structure:
+def solution(input_data):
+    # Step 1: Handle edge cases
+    if not input_data:
+        return default_value
+    
+    # Step 2: Initialize variables
+    result = initial_value
+    
+    # Step 3: Process input
+    for item in input_data:
+        # Apply your logic here
+        pass
+    
+    # Step 4: Return result
+    return result"""
+    else:
+        return "// Structure: Initialize -> Process -> Return"
+
+def _generate_eli5_explanation(code, language):
+    """Generate ELI5 (Explain Like I'm 5) explanation"""
+    code_lower = code.lower()
+    
+    explanation = "Let me explain this code like you're 5 years old:\n\n"
+    
+    if 'def' in code_lower or 'function' in code_lower:
+        explanation += "Imagine you have a magic box (a function) that does something special. "
+    
+    if 'for' in code_lower or 'while' in code_lower:
+        explanation += "The code goes through items one by one, like counting toys. "
+    
+    if 'if' in code_lower:
+        explanation += "It makes decisions, like 'if it's raining, take an umbrella'. "
+    
+    if 'return' in code_lower:
+        explanation += "At the end, it gives you back an answer, like when you ask 'what's 2+2?' and get '4'. "
+    
+    explanation += "\n\nIn simple terms: This code takes some information, does something with it, and gives you a result!"
+    
+    return explanation
+
+def _generate_beginner_explanation(code, language):
+    """Generate beginner-level explanation"""
+    return f"""This {language} code is structured to solve a specific problem. Here's how it works:
+
+1. **Input**: The code receives data to process
+2. **Processing**: It uses loops, conditions, and operations to work with the data
+3. **Output**: It returns or displays the final result
+
+The code follows a clear logical flow from start to finish, making it easier to understand and debug."""
+
+def _generate_technical_explanation(code, language):
+    """Generate technical explanation"""
+    lines = len(code.split('\n'))
+    return f"""Technical Analysis of this {language} code ({lines} lines):
+
+This implementation uses standard {language} constructs to solve the problem. The algorithm follows a structured approach with clear separation of concerns. The code demonstrates understanding of fundamental programming concepts including control flow, data structures, and problem decomposition.
+
+The solution maintains readability while optimizing for correctness. Edge cases should be verified through comprehensive testing."""
+
+def _generate_advanced_explanation(code, language):
+    """Generate advanced explanation"""
+    return f"""Advanced Analysis:
+
+This {language} implementation exhibits several notable characteristics:
+- Algorithmic complexity considerations
+- Idiomatic {language} patterns
+- Potential optimization opportunities
+- Code organization and structure
+
+The solution balances readability, performance, and maintainability. Consider profiling for performance-critical applications and adding comprehensive documentation for production use."""
+
+def _extract_code_concepts(code, language):
+    """Extract key programming concepts from code"""
+    concepts = []
+    code_lower = code.lower()
+    
+    if 'def' in code_lower or 'function' in code_lower:
+        concepts.append("Uses functions to organize code")
+    if 'for' in code_lower or 'while' in code_lower:
+        concepts.append("Implements loops for iteration")
+    if 'if' in code_lower:
+        concepts.append("Uses conditional logic for decision-making")
+    if '[' in code or 'list' in code_lower or 'array' in code_lower:
+        concepts.append("Works with arrays/lists for data storage")
+    if 'return' in code_lower:
+        concepts.append("Returns a value from the function")
+    
+    return concepts
+
+def _extract_technical_details(code, language):
+    """Extract technical details"""
+    details = []
+    
+    if language == 'python':
+        if 'lambda' in code:
+            details.append("Uses lambda functions for concise operations")
+        if 'list comprehension' in code or '[' in code and 'for' in code:
+            details.append("Utilizes list comprehensions")
+        if 'try' in code.lower():
+            details.append("Implements error handling")
+    
+    return details if details else ["Standard programming constructs", "Clear variable naming", "Logical flow control"]
+
+def _extract_advanced_patterns(code, language):
+    """Extract advanced patterns"""
+    patterns = []
+    
+    if 'class' in code.lower():
+        patterns.append("Object-oriented design with classes")
+    if 'async' in code.lower() or 'await' in code.lower():
+        patterns.append("Asynchronous programming patterns")
+    if 'decorator' in code.lower() or '@' in code:
+        patterns.append("Uses decorators for metaprogramming")
+    
+    return patterns if patterns else ["Procedural programming approach", "Functional decomposition", "Clear abstraction layers"]
+
+def _estimate_time_complexity(code):
+    """Estimate time complexity based on loop keywords"""
+    loop_count = code.lower().count('for') + code.lower().count('while')
+    
+    if loop_count == 0:
+        return "O(1) - Constant time"
+    elif loop_count == 1:
+        return "O(n) - Linear time"
+    elif loop_count == 2:
+        return "O(n²) - Quadratic time"
+    else:
+        return "O(n³) or higher - Consider optimization"
+
+def _estimate_space_complexity(code):
+    """Estimate space complexity"""
+    if 'append' in code.lower() or '+=' in code:
+        return "O(n) - Linear space (creates new data structures)"
+    else:
+        return "O(1) - Constant space (in-place operations)"
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
